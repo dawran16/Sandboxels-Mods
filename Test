@@ -1,0 +1,101 @@
+// Controllable Mecha Robot Mod (PC & Mobile Support)
+
+// Setup Mobile Touch On-Screen Controls
+if (!document.getElementById("mecha-touch-controls")) {
+    var touchDiv = document.createElement("div");
+    touchDiv.id = "mecha-touch-controls";
+    touchDiv.style.position = "fixed";
+    touchDiv.style.bottom = "20px";
+    touchDiv.style.left = "50%";
+    touchDiv.style.transform = "translateX(-50%)";
+    touchDiv.style.zIndex = "9999";
+    touchDiv.style.display = "flex";
+    touchDiv.style.gap = "10px";
+    touchDiv.style.userSelect = "none";
+
+    touchDiv.innerHTML = `
+        <button id="btn-left" style="padding:15px 20px; font-size:18px; border-radius:8px; background:#333; color:#fff; border:none;">◀</button>
+        <button id="btn-up" style="padding:15px 20px; font-size:18px; border-radius:8px; background:#333; color:#fff; border:none;">▲</button>
+        <button id="btn-right" style="padding:15px 20px; font-size:18px; border-radius:8px; background:#333; color:#fff; border:none;">▶</button>
+        <button id="btn-fire" style="padding:15px 20px; font-size:18px; border-radius:8px; background:#e74c3c; color:#fff; border:none; margin-left:15px;">🔥</button>
+    `;
+    document.body.appendChild(touchDiv);
+
+    window.mechaKeys = { ArrowLeft: false, ArrowRight: false, ArrowUp: false, Space: false };
+
+    var bindBtn = (id, key) => {
+        var btn = document.getElementById(id);
+        btn.addEventListener("touchstart", (e) => { e.preventDefault(); window.mechaKeys[key] = true; });
+        btn.addEventListener("touchend", (e) => { e.preventDefault(); window.mechaKeys[key] = false; });
+        btn.addEventListener("mousedown", () => window.mechaKeys[key] = true);
+        btn.addEventListener("mouseup", () => window.mechaKeys[key] = false);
+    };
+
+    bindBtn("btn-left", "ArrowLeft");
+    bindBtn("btn-up", "ArrowUp");
+    bindBtn("btn-right", "ArrowRight");
+    bindBtn("btn-fire", "Space");
+}
+
+// Keyboard Listeners
+if (!window.mechaControlsInitialized) {
+    window.mechaControlsInitialized = true;
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "ArrowLeft" || e.code === "KeyA") window.mechaKeys.ArrowLeft = true;
+        if (e.code === "ArrowRight" || e.code === "KeyD") window.mechaKeys.ArrowRight = true;
+        if (e.code === "ArrowUp" || e.code === "KeyW") window.mechaKeys.ArrowUp = true;
+        if (e.code === "Space") window.mechaKeys.Space = true;
+    });
+
+    window.addEventListener("keyup", (e) => {
+        if (e.code === "ArrowLeft" || e.code === "KeyA") window.mechaKeys.ArrowLeft = false;
+        if (e.code === "ArrowRight" || e.code === "KeyD") window.mechaKeys.ArrowRight = false;
+        if (e.code === "ArrowUp" || e.code === "KeyW") window.mechaKeys.ArrowUp = false;
+        if (e.code === "Space") window.mechaKeys.Space = false;
+    });
+}
+
+// Mecha Element Definition
+elements.mecha_robot = {
+    color: ["#505860", "#707880", "#a0a8b0", "#e74c3c"],
+    category: "machines",
+    state: "solid",
+    density: 7800,
+    conduct: 0.9,
+    hardness: 0.8,
+    temp: 20,
+    tempHigh: 1500,
+    stateHigh: "molten_metal",
+    reactions: {
+        "water": { elem1: "mecha_robot", elem2: "rust", chance: 0.02 },
+        "acid": { elem1: "fire", elem2: null, chance: 0.1 }
+    },
+    tick: function(pixel) {
+        var x = pixel.x;
+        var y = pixel.y;
+
+        if (window.mechaKeys.ArrowLeft && isEmpty(x - 1, y)) {
+            movePixel(pixel, x - 1, y);
+            return;
+        }
+        if (window.mechaKeys.ArrowRight && isEmpty(x + 1, y)) {
+            movePixel(pixel, x + 1, y);
+            return;
+        }
+        if (window.mechaKeys.ArrowUp && isEmpty(x, y - 1)) {
+            movePixel(pixel, x, y - 1);
+            if (isEmpty(x, y + 1)) createPixel("smoke", x, y + 1);
+            return;
+        }
+
+        if (window.mechaKeys.Space) {
+            if (isEmpty(x, y + 1)) createPixel("laser", x, y + 1);
+            if (isEmpty(x + 1, y)) createPixel("fire", x + 1, y);
+            if (isEmpty(x - 1, y)) createPixel("fire", x - 1, y);
+        }
+
+        if (!window.mechaKeys.ArrowUp && isEmpty(x, y + 1)) {
+            movePixel(pixel, x, y + 1);
+        }
+    }
+};
